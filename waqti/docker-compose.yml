@@ -1,0 +1,33 @@
+services:
+  pgsql:
+    image: postgres:16
+    ports:
+      - '${FORWARD_DB_PORT:-5432}:5432'
+    environment:
+      PGPASSWORD: '${DB_PASSWORD:-secret}'
+      POSTGRES_DB: '${DB_DATABASE:-waqti}'
+      POSTGRES_USER: '${DB_USERNAME:-waqti}'
+      POSTGRES_PASSWORD: '${DB_PASSWORD:-secret}'
+    volumes:
+      - waqti-pgsql:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-q", "-d", "${DB_DATABASE:-waqti}", "-U", "${DB_USERNAME:-waqti}"]
+      retries: 3
+      timeout: 5s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '${FORWARD_REDIS_PORT:-6379}:6379'
+    volumes:
+      - waqti-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      retries: 3
+      timeout: 5s
+
+volumes:
+  waqti-pgsql:
+    driver: local
+  waqti-redis:
+    driver: local
