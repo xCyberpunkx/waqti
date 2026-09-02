@@ -65,6 +65,7 @@ sandbox number.
 ## 4. Regression suite
 
 After every major change:
+
 - full security suite
 - booking-overlap suite
 - webhook idempotency suite
@@ -73,6 +74,7 @@ After every major change:
 ## 5. Definition of done
 
 A feature is done when:
+
 - tests exist and pass
 - authorization tested
 - idempotency tested where inbound/webhook-driven

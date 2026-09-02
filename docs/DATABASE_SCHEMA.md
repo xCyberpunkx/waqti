@@ -82,6 +82,7 @@ since a second provider is plausible later.
 - updated_at
 
 Constraints:
+
 - no two `confirmed`/`pending` bookings for the same provider may overlap
   in time (enforced at the application level with locking; a DB-level
   exclusion constraint is worth evaluating once Postgres extensions are

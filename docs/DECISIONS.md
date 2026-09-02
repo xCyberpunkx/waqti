@@ -20,6 +20,7 @@ No decisions recorded yet beyond the above — this log starts substantively
 once Phase 0 begins.
 
 Expected early decisions to record here once made:
+
 - official Cloud API vs. any prototype-only unofficial library boundary
   (see `WHATSAPP_INTEGRATION.md` §1)
 - bundled vs. pass-through message cost pricing (see `BILLING.md` §2)

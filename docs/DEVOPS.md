@@ -7,6 +7,7 @@ filled in as Phase 0 actually happens. Do not describe infrastructure as
 active until it is.
 
 Target local setup:
+
 - Docker Compose (Postgres + Redis)
 - Laravel Sail or equivalent
 - Meta Developer sandbox app + test WhatsApp number for local webhook
@@ -61,6 +62,7 @@ reminders, which is the core value proposition failing silently.
 ## 8. Monitoring
 
 Production needs, from early on given the reminder-dependency:
+
 - uptime
 - queue health (a stalled queue = silently unsent reminders)
 - webhook endpoint error rate

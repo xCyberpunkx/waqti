@@ -1,5 +1,7 @@
 # FOUNDATION.md
+
 ### Waqti — Practical Build Doc
+
 Status: Living document. Update as decisions change. This is not the
 constitution — see `SOURCE_OF_TRUTH.md` for the rules that don't change.
 
@@ -18,15 +20,15 @@ into a real booking system that reduces no-shows.
 
 ## 2. Stack (locked — do not revisit without a real reason)
 
-| Layer | Choice |
-|---|---|
-| Backend | Laravel 13 |
-| Frontend (provider dashboard) | Inertia + React + TypeScript |
-| Database | PostgreSQL |
-| Queue | Redis — required from day one (webhook processing, reminder scheduling; not deferred like Velora's) |
-| Messaging | WhatsApp Cloud API (official, Meta-hosted) |
-| Local env | Docker Compose (Postgres + Redis) |
-| Testing | Pest |
+| Layer                         | Choice                                                                                              |
+| ----------------------------- | --------------------------------------------------------------------------------------------------- |
+| Backend                       | Laravel 13                                                                                          |
+| Frontend (provider dashboard) | Inertia + React + TypeScript                                                                        |
+| Database                      | PostgreSQL                                                                                          |
+| Queue                         | Redis — required from day one (webhook processing, reminder scheduling; not deferred like Velora's) |
+| Messaging                     | WhatsApp Cloud API (official, Meta-hosted)                                                          |
+| Local env                     | Docker Compose (Postgres + Redis)                                                                   |
+| Testing                       | Pest                                                                                                |
 
 No unofficial WhatsApp libraries in production (see `WHATSAPP_INTEGRATION.md`
 §2). No multi-tenant architecture until a real second provider on the same
@@ -134,6 +136,7 @@ driven by what that provider actually needs.
 ## 9. Weekly Check-in (even solo)
 
 Every Friday, answer honestly:
+
 - What actually shipped this week?
 - What did I build that wasn't on this list? Why?
 - Is Phase 1 closer to done or did scope grow?

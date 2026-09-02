@@ -13,6 +13,7 @@ The business/individual using Waqti. Phase 1 assumes exactly one Provider
 per deployment.
 
 Responsibilities:
+
 - business identity (name, category, timezone)
 - WhatsApp Business phone number + Cloud API credentials
 - working hours / availability rules
@@ -25,6 +26,7 @@ number. Not an authenticated user of Waqti — Waqti never asks a client to
 create an account or install anything.
 
 Contains:
+
 - phone number (E.164)
 - display name (from WhatsApp profile or self-provided)
 - consent/opt-in status
@@ -34,7 +36,7 @@ Contains:
 
 ### Slot / Availability rule
 
-Defines when the Provider *can* be booked. Two representations:
+Defines when the Provider _can_ be booked. Two representations:
 
 - **AvailabilityRule** — recurring pattern (e.g. Mon–Sat, 09:00–18:00,
   slot length 30 min)
@@ -48,6 +50,7 @@ existing bookings, not stored as a giant pre-generated table.
 A confirmed appointment between Provider and Client.
 
 Target attributes:
+
 - client_id
 - starts_at
 - ends_at
@@ -66,6 +69,7 @@ for the same Provider must never overlap in time.
 A message received from a Client via the WhatsApp webhook.
 
 Target attributes:
+
 - whatsapp_message_id (Meta's ID — the idempotency key)
 - client_id
 - body / payload
@@ -78,6 +82,7 @@ Target attributes:
 A message sent to a Client — booking confirmations, reminders, replies.
 
 Target attributes:
+
 - client_id
 - booking_id nullable
 - template_name nullable (template messages outside the 24h window)
@@ -102,6 +107,7 @@ inbound message means.
 Record of a reminder that was scheduled and/or sent for a Booking.
 
 Target attributes:
+
 - booking_id
 - type (`24h`, `2h`, or configurable)
 - scheduled_for

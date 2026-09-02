@@ -10,6 +10,7 @@ aren't exposed or misused.
 ## 2. Authentication (provider dashboard)
 
 Required:
+
 - secure password storage
 - login / logout
 - password reset
@@ -53,6 +54,7 @@ inbound handler.
 
 Use explicit validation. Never allow request payloads to set protected
 fields such as:
+
 - provider_id
 - consent_status
 - booking status transitions that bypass the state machine
@@ -60,6 +62,7 @@ fields such as:
 ## 8. Rate limiting
 
 At minimum:
+
 - dashboard login
 - password reset
 - the webhook endpoint itself (protect against flood, independent of
@@ -81,6 +84,7 @@ deployment. `.env.example` contains placeholders only.
 ## 11. Security testing
 
 Every new mutation gets an authorization test. The webhook handler gets:
+
 - signature-verification-rejects-invalid-signature test
 - duplicate-delivery-does-not-duplicate-side-effects test
 
@@ -88,6 +92,7 @@ Every new mutation gets an authorization test. The webhook handler gets:
 
 If a vulnerability, credential leak, or WhatsApp number issue is
 suspected:
+
 1. contain
 2. preserve evidence (including relevant webhook logs)
 3. disable affected capability if required

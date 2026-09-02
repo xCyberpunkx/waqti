@@ -44,14 +44,14 @@ want a new app, and neither does their client.
 
 ## Stack
 
-| Layer | Choice |
-|---|---|
-| Backend | Laravel 13 |
-| Dashboard | Inertia + React + TypeScript |
-| Database | PostgreSQL |
-| Queue | Redis |
+| Layer     | Choice                                         |
+| --------- | ---------------------------------------------- |
+| Backend   | Laravel 13                                     |
+| Dashboard | Inertia + React + TypeScript                   |
+| Database  | PostgreSQL                                     |
+| Queue     | Redis                                          |
 | Messaging | WhatsApp Cloud API (official Meta integration) |
-| Testing | Pest |
+| Testing   | Pest                                           |
 
 ## Status
 

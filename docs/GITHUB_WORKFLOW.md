@@ -41,6 +41,7 @@ specific to this project — whether any WhatsApp template content changed
 ## 6. Issues
 
 Suggested labels:
+
 - `priority:p0` / `p1` / `p2`
 - `type:bug` / `type:feature` / `type:security`
 - `module:booking` / `module:whatsapp` / `module:billing` /

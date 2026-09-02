@@ -46,6 +46,7 @@ cancelled / expired
 ```
 
 ## 4. Target entities (Phase 2 — not built until subscription billing is
+
 real, i.e. more than one paying provider or a provider past a free
 trial)
 
