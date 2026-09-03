@@ -45,8 +45,23 @@ session to give wrong guidance; don't repeat that here.
 
 ## Current task
 
-The current next milestone is Phase 0 — Project Foundation. Nothing has
-been built yet. See `PROGRESS.md` → "Next exact task."
+Phase 0 is done (verified against repo 2026-09-03: Laravel 13 + Inertia/
+React/TS scaffold, Docker Compose Postgres+Redis, Pest test files
+present, auth scaffolding via Fortify incl. 2FA/passkeys). No domain
+code exists yet — no `providers`/`clients`/`bookings`/messaging tables,
+no WhatsApp integration code anywhere in `app/`.
+
+Next milestone is **Phase 1 Step 1 — Provider + Auth**. Dashboard login
+infra already exists (Fortify); still needed: `providers` table/model,
+encrypted WhatsApp credential storage, and linking the existing
+auth/dashboard to a Provider record. See `PROGRESS.md` → "Next exact
+task."
+
+Open question carried over from the prior session's ambiguous "next
+task" note: whether Meta Developer / WhatsApp Business Account
+provisioning has happened outside the repo (not something the repo can
+confirm either way) — confirm with the user before assuming Step 1 can
+proceed to template submission work.
 
 ## Required implementation sequence (once Phase 0 is done)
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Settings\ProfileController;
+use App\Http\Controllers\Settings\ProviderController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
@@ -10,6 +11,11 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    Route::get('settings/provider', [ProviderController::class, 'edit'])->name('provider.edit');
+    Route::patch('settings/provider', [ProviderController::class, 'updateProfile'])->name('provider.update');
+    Route::patch('settings/provider/whatsapp', [ProviderController::class, 'updateWhatsappCredentials'])
+        ->name('provider.whatsapp.update');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

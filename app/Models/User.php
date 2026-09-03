@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -46,5 +47,18 @@ class User extends Authenticatable implements PasskeyUser
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The provider business this dashboard user owns.
+     *
+     * Phase 1 assumes exactly one provider per user — see
+     * DOMAIN_MODEL.md §2 and SOURCE_OF_TRUTH.md §2.9.
+     *
+     * @return HasOne<Provider, $this>
+     */
+    public function provider(): HasOne
+    {
+        return $this->hasOne(Provider::class);
     }
 }
