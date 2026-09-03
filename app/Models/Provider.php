@@ -22,7 +22,14 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'business_category', 'timezone'])]
+#[Fillable([
+    'name',
+    'business_category',
+    'timezone',
+    'whatsapp_phone_number_id',
+    'whatsapp_business_account_id',
+    'whatsapp_access_token',
+])]
 #[Hidden(['whatsapp_access_token'])]
 class Provider extends Model
 {
@@ -32,10 +39,17 @@ class Provider extends Model
     /**
      * Get the attributes that should be cast.
      *
-     * WhatsApp credentials are never mass-assignable (see SECURITY.md
-     * §7) — they're set explicitly through a dedicated action, not
-     * through the general provider-profile update path. The
-     * `encrypted` cast satisfies SECURITY.md §3 (encrypted at rest).
+     * The `encrypted` cast satisfies SECURITY.md §3 (encrypted at
+     * rest). WhatsApp fields ARE model-fillable (needed for
+     * `updateOrCreate()`/`fill()` in `ProviderController` to actually
+     * set them — a prior version excluded them here, which silently
+     * dropped every credential save). The real mass-assignment
+     * boundary (SECURITY.md §7) is enforced one layer up, by
+     * `ProviderProfileUpdateRequest` and
+     * `ProviderWhatsappCredentialsUpdateRequest` only ever validating
+     * (and therefore only ever passing through `validated()`) the
+     * fields relevant to their own form — `user_id` is never
+     * fillable/validated anywhere and is always relation-derived.
      *
      * @return array<string, string>
      */

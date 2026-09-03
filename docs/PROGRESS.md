@@ -219,3 +219,89 @@ specified. No architecture deviation.
 Cannot run PHP/Composer/npm in this environment — all backend/frontend
 code here is unexecuted. Treat as a draft implementation pending a real
 local test run, not as verified-working.
+
+---
+
+### Date
+2026-09-03 (same day, third session — first real local test run)
+
+### What I changed
+User ran `php artisan migrate` (clean) and `php artisan test` locally.
+6 of 54 tests failed. Root-caused and fixed:
+
+**Bug found:** `Provider`'s `#[Fillable(...)]` attribute only listed
+`name`/`business_category`/`timezone`. `ProviderController` sets
+WhatsApp fields via `updateOrCreate()`, which calls `fill()`
+internally — Laravel's default (non-strict) mass-assignment guard
+silently drops any key not in `#[Fillable]`, so
+`whatsapp_phone_number_id`/`whatsapp_business_account_id`/
+`whatsapp_access_token` were never actually being written, no
+exception thrown. The comment in the original code claimed this was
+intentional protection; it was actually a bug — the real
+mass-assignment boundary (SECURITY.md §7) is the FormRequest classes
+only validating/returning fields relevant to their own form, not the
+model's fillable list. Fixed by adding the three WhatsApp fields to
+`Provider`'s `#[Fillable(...)]`; corrected the misleading comments in
+`Provider.php` and `ProviderProfileUpdateRequest.php` that described
+the old (broken) reasoning.
+
+**Not a bug — expected, pending a build:** 4 of the 6 failures were
+`ViteException: Unable to locate file in Vite manifest:
+resources/js/pages/settings/provider.tsx`. This is normal — the Vite
+manifest used by `php artisan test` is only refreshed by
+`npm run build` (or `npm run dev` for local browsing), and that hadn't
+been run yet after adding `provider.tsx`. No code change needed; user
+needs to run the frontend build.
+
+### What I tested
+Nothing further executed by me (still no PHP/npm available here). The
+fix targets exactly the 2 non-Vite failures
+(`whatsapp_credentials_can_be_stored_on_first_save`,
+`access_token_is_not_required_to_update_other_fields_once_set`) and, by
+the same root cause, should also fix
+`whatsapp_access_token_is_encrypted_at_rest` (it never got a value to
+encrypt). The 3 Vite-manifest failures aren't a code problem — they
+should pass once the manifest includes `provider.tsx`.
+
+### What passed
+48/54 on the user's first real run (see above for the 6 failures and
+their causes/fixes).
+
+### What failed
+See "What I changed" — 2 caused by the fillable bug (now fixed, needs
+re-run to confirm), 1 more from the same root cause
+(`encrypted_at_rest` test), 3 from a stale Vite manifest (needs
+`npm run build`, not a code fix).
+
+### Database changes
+None this session (fix is model-layer only, no new migration).
+
+### Security impact
+The bug being fixed was a silent *failure to write* data, not an
+exposure — no credential was ever stored insecurely; it just wasn't
+stored at all. No new exposure introduced by the fix: `user_id` is
+still never in any `#[Fillable]` list and still can't be set through
+either FormRequest, and the two FormRequests are still the actual
+boundary controlling which fields each form can touch.
+
+### Decisions made
+None requiring `DECISIONS.md` — bug fix, not an architecture change.
+
+### Next exact task
+1. Re-copy `app/Models/Provider.php` and
+   `app/Http/Requests/Settings/ProviderProfileUpdateRequest.php`
+   (updated this session) into the repo.
+2. Run `npm run build` (or `npm run dev`) to refresh the Vite manifest
+   so `provider.tsx` resolves.
+3. Re-run `php artisan test` — expect 54/54. If anything's still red,
+   send the output back.
+4. Once green: manually click through Settings → Business in the
+   browser, then commit.
+5. After that: Meta Developer/WhatsApp Business Account provisioning
+   (still not done, per earlier session), then Phase 1 Step 2 —
+   Availability.
+
+### Notes / blockers
+Same as before — no PHP/npm in my environment, so this fix is
+reasoned from the stack trace/assertion diffs, not re-executed. Confirm
+with a real test run before trusting it.

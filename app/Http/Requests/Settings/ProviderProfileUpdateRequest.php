@@ -24,8 +24,10 @@ class ProviderProfileUpdateRequest extends FormRequest
      * Get the validation rules that apply to the request.
      *
      * Deliberately excludes `user_id` and any WhatsApp credential
-     * fields — those are never mass-assignable through this form (see
-     * SECURITY.md §7 and the `#[Fillable]` attribute on Provider).
+     * fields — those simply aren't in this form's rules, so
+     * `validated()` never returns them and they can never reach
+     * `Provider::fill()` through this request, regardless of what the
+     * model allows (see SECURITY.md §7).
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
