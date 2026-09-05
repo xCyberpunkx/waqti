@@ -102,4 +102,20 @@ class Provider extends Model
     {
         return $this->hasMany(Booking::class);
     }
+
+    /**
+     * @return HasMany<InboundMessage, $this>
+     */
+    public function inboundMessages(): HasMany
+    {
+        return $this->hasMany(InboundMessage::class);
+    }
+
+    /**
+     * @return HasMany<ConversationState, $this>
+     */
+    public function conversationStates(): HasMany
+    {
+        return $this->hasMany(ConversationState::class);
+    }
 }

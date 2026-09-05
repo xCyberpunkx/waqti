@@ -32,5 +32,7 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="WHATSAPP_APP_SECRET" value="test-app-secret-do-not-use-in-production"/>
+        <env name="WHATSAPP_WEBHOOK_VERIFY_TOKEN" value="test-verify-token"/>
     </php>
 </phpunit>

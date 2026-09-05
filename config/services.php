@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    'whatsapp' => [
+        // Meta App Secret — used to verify X-Hub-Signature-256 on every
+        // inbound webhook request. See SECURITY.md §4.
+        'app_secret' => env('WHATSAPP_APP_SECRET'),
+        // The shared secret you set in the Meta App Dashboard's webhook
+        // subscription config; Meta echoes it back on the GET
+        // verification handshake. See SECURITY.md §3.
+        'webhook_verify_token' => env('WHATSAPP_WEBHOOK_VERIFY_TOKEN'),
+    ],
+
 ];

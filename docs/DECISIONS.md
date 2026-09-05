@@ -120,3 +120,39 @@ value — this is the more general fix and should be preferred over
 `updateOrCreate` for any future `date`-keyed lookup in this codebase,
 not just this one. Full suite (87 tests) now passes, executed for real
 in this sandbox — not reasoned from a stack trace.
+
+## 2026-09-04 — Reconciled `inbound_messages.conversation_state` between DATABASE_SCHEMA.md and DOMAIN_MODEL.md
+
+Changed: added `conversation_state` to `inbound_messages` in both the
+migration and `DATABASE_SCHEMA.md`.
+
+Reason: `DOMAIN_MODEL.md` §4 listed "conversation_state at time of
+receipt" as a target attribute of InboundMessage; `DATABASE_SCHEMA.md`
+§4's column list for the same table didn't have it. Building Step 3
+surfaced the mismatch. Kept it — it directly serves the same debugging
+rationale `WHATSAPP_INTEGRATION.md` §6 gives for storing the raw
+payload ("conversation-state bugs are much easier to diagnose with the
+original payload in hand"), and it's a single nullable string column,
+not a design commitment to anything about Step 4's actual state
+machine.
+
+Consequences: none besides the extra column. Doesn't imply or
+constrain what Step 4's state vocabulary looks like.
+
+## 2026-09-04 — `whatsapp_message_id` is unique globally, not per-provider
+
+Changed: `inbound_messages.whatsapp_message_id` has a plain unique
+index, not a composite `(provider_id, whatsapp_message_id)` one.
+
+Reason: Meta generates message IDs (`wamid...`) as platform-wide
+identifiers, not scoped to a single WhatsApp Business Account or phone
+number — so global uniqueness is the correct constraint, and is also a
+strictly stronger idempotency guarantee than a composite one would be
+(SECURITY.md §5 cares about a redelivered *message* never being
+double-processed, not a redelivered message-per-provider).
+
+Consequences: none currently, since Phase 1 is single-provider anyway
+(SOURCE_OF_TRUTH.md §2.9). Worth re-confirming if Phase 2 multi-tenancy
+ever means two providers could plausibly share exposure to the same
+underlying WhatsApp message ID (unlikely, but noted here rather than
+assumed silently).

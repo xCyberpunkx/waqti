@@ -3,13 +3,14 @@
 namespace Database\Factories;
 
 use App\Models\Client;
+use App\Models\ConversationState;
 use App\Models\Provider;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<Client>
+ * @extends Factory<ConversationState>
  */
-class ClientFactory extends Factory
+class ConversationStateFactory extends Factory
 {
     /**
      * @return array<string, mixed>
@@ -17,11 +18,10 @@ class ClientFactory extends Factory
     public function definition(): array
     {
         return [
+            'client_id' => Client::factory(),
             'provider_id' => Provider::factory(),
-            'phone_number' => '+2136'.fake()->numerify('########'),
-            'display_name' => fake()->firstName(),
-            'consent_status' => 'unknown',
-            'first_contacted_at' => now(),
+            'state_key' => ConversationState::DEFAULT_STATE,
+            'context_json' => null,
         ];
     }
 }

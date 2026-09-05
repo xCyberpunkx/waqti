@@ -98,6 +98,9 @@ Constraints:
 - whatsapp_message_id — unique, this is the idempotency key
 - body
 - payload_json — raw webhook payload for debugging
+- conversation_state — snapshot of the client's ConversationState at
+  receipt time, per DOMAIN_MODEL.md §4 (was missing here until it was
+  actually built — see DECISIONS.md, 2026-09-04)
 - received_at
 - processed_at nullable
 

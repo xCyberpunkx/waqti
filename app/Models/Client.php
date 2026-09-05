@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -50,5 +51,21 @@ class Client extends Model
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    /**
+     * @return HasMany<InboundMessage, $this>
+     */
+    public function inboundMessages(): HasMany
+    {
+        return $this->hasMany(InboundMessage::class);
+    }
+
+    /**
+     * @return HasOne<ConversationState, $this>
+     */
+    public function conversationState(): HasOne
+    {
+        return $this->hasOne(ConversationState::class);
     }
 }

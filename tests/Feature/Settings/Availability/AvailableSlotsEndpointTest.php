@@ -76,7 +76,7 @@ class AvailableSlotsEndpointTest extends TestCase
 
         $response->assertOk();
 
-        $daySlots = $response->json('slots.' . $monday->toDateString());
+        $daySlots = $response->json('slots.'.$monday->toDateString());
 
         $this->assertCount(1, $daySlots);
         $this->assertStringContainsString('T09:30:00', $daySlots[0]['starts_at']);

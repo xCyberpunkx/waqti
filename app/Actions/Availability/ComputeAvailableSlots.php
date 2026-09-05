@@ -2,8 +2,10 @@
 
 namespace App\Actions\Availability;
 
+use App\Models\AvailabilityRule;
 use App\Models\Booking;
 use App\Models\Provider;
+use App\Models\SlotException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -42,8 +44,8 @@ class ComputeAvailableSlots
      * `slot_length_minutes` increments, and any slot overlapping an
      * active (pending/confirmed) Booking is excluded.
      *
-     * @param  Collection<int, \App\Models\AvailabilityRule>  $rules  All of the provider's rules (any weekday).
-     * @param  Collection<int, \App\Models\SlotException>  $exceptions  Exceptions covering the date (0 or 1 expected).
+     * @param  Collection<int, AvailabilityRule>  $rules  All of the provider's rules (any weekday).
+     * @param  Collection<int, SlotException>  $exceptions  Exceptions covering the date (0 or 1 expected).
      * @param  Collection<int, Booking>  $bookings  Active bookings overlapping the date.
      * @return list<array{starts_at: Carbon, ends_at: Carbon}>
      */
@@ -77,8 +79,8 @@ class ComputeAvailableSlots
      * Compute available slots across an inclusive date range by calling
      * `forDate()` once per day.
      *
-     * @param  Collection<int, \App\Models\AvailabilityRule>  $rules
-     * @param  Collection<int, \App\Models\SlotException>  $exceptions
+     * @param  Collection<int, AvailabilityRule>  $rules
+     * @param  Collection<int, SlotException>  $exceptions
      * @param  Collection<int, Booking>  $bookings
      * @return array<string, list<array{starts_at: Carbon, ends_at: Carbon}>> Keyed by Y-m-d date string.
      */

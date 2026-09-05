@@ -536,3 +536,151 @@ Still no PHP in this environment — apt's `noble-updates` mirror is
 currently serving 404s for the `php8.3-*` packages needed for a CLI
 install. Everything in this entry is reasoned from the failure output
 you pasted, not re-executed here.
+---
+
+### Date
+2026-09-04 (same day, sixth session)
+
+### What I changed
+Phase 1 Step 3 — WhatsApp Inbound Pipeline, per ROADMAP.md:
+
+- Migrations: `inbound_messages` (incl. `conversation_state` snapshot
+  column, reconciled into `DATABASE_SCHEMA.md` — see `DECISIONS.md`),
+  `conversation_states` (skeleton only — no states/transitions defined,
+  that's Step 4).
+- Models: `InboundMessage`, `ConversationState`; new
+  `inboundMessages()`/`conversationState()` relations on `Client`,
+  `inboundMessages()`/`conversationStates()` on `Provider`.
+- `App\Http\Middleware\VerifyWhatsappWebhookSignature` — HMAC-SHA256
+  over the raw request body against `services.whatsapp.app_secret`,
+  timing-safe (`hash_equals`) comparison against
+  `X-Hub-Signature-256`. Rejects with 403 and does nothing else — no
+  logging of a failed-verification request, per SECURITY.md §4's
+  "rejected, not logged-and-processed."
+- `App\Http\Controllers\Webhooks\WhatsappWebhookController` —
+  `verify()` (Meta's GET handshake: checks `hub_mode`/`hub_verify_token`
+  against config, timing-safe compare, echoes `hub_challenge`) and
+  `handle()` (dispatches the job, acks immediately with a plain JSON
+  200 — no work done in the request cycle itself, per
+  WHATSAPP_INTEGRATION.md §6 and SOURCE_OF_TRUTH.md §2.8).
+- `App\Jobs\ProcessInboundWhatsappMessage` — the actual processing,
+  off-request. Loops Meta's `entry[].changes[].value` structure (a
+  single delivery can batch multiple messages). Per message: resolves
+  `Provider` by `metadata.phone_number_id` (logs + skips if unknown,
+  doesn't throw and fail the rest of the batch); idempotency check by
+  `whatsapp_message_id` before doing anything else; finds-or-creates
+  the `Client` via `$provider->clients()->firstOrCreate(...)` (kept
+  `provider_id` out of `Client`'s fillable list, same
+  relation-derived-only invariant as everywhere else); ensures a
+  `ConversationState` row exists (`state_key = 'idle'` default) via
+  `$client->conversationState()->firstOrCreate(...)`; stores the
+  `InboundMessage` inside a try/catch for
+  `UniqueConstraintViolationException` as a backstop against a
+  concurrent duplicate delivery race the `exists()` pre-check alone
+  wouldn't catch. Explicitly does **not** interpret message content,
+  drive any menu, or transition conversation state based on what was
+  said — Step 4 territory, called out in the class docblock so it
+  isn't accidentally grown into over time.
+- `routes/api.php` (new) — `GET`/`POST /api/whatsapp/webhook`, wired
+  into `bootstrap/app.php`'s `withRouting(api: ...)`. No `web`
+  middleware (no CSRF, no session) — this is Meta calling us, not a
+  browser.
+- `AppServiceProvider` — registered a `whatsapp-webhook` rate limiter
+  (120/min), applied to the POST route only, independent of Meta's own
+  delivery behavior, per SECURITY.md §8.
+- `config/services.php` + `.env.example` — `WHATSAPP_APP_SECRET`,
+  `WHATSAPP_WEBHOOK_VERIFY_TOKEN`. `.env.example` has placeholders
+  only, per SECURITY.md §10. **The user's own local `.env` still needs
+  the real values added** — not something I can or should do; the app
+  secret is the one flagged during Meta provisioning (session 4) but
+  never actually stored anywhere in the repo.
+- `phpunit.xml` — fixed test values for both, so signature tests can
+  compute a real matching HMAC deterministically.
+
+### What I tested
+This entire session was executed for real, not reasoned about — same
+sandbox with the working PHP 8.4 install from the last session.
+
+- `tests/Feature/Webhooks/WhatsappWebhookVerificationTest.php` —
+  correct token echoes the challenge; wrong token rejected; right
+  token but wrong `hub.mode` rejected; missing params rejected.
+- `tests/Feature/Webhooks/WhatsappWebhookSignatureTest.php` — required
+  by SECURITY.md §11 ("signature-verification-rejects-invalid-signature
+  test"): no signature header rejected; invalid signature rejected;
+  malformed signature header rejected; valid signature accepted *and*
+  dispatches the job (`Bus::fake()` + `assertDispatched`).
+- `tests/Unit/Jobs/ProcessInboundWhatsappMessageTest.php` — required by
+  SECURITY.md §11 ("duplicate-delivery-does-not-duplicate-side-effects
+  test"): new message creates Client + InboundMessage +
+  ConversationState correctly; **the exact same `whatsapp_message_id`
+  processed twice creates nothing new the second time**; a second,
+  different message from the same client reuses the existing Client
+  and ConversationState rather than creating duplicates; an unknown
+  `phone_number_id` logs a warning and skips cleanly instead of
+  throwing; a message with no text body (e.g. an image) is still
+  stored with `body = null`; a single delivery batching two messages
+  processes both; two different providers' clients with message
+  traffic never cross-contaminate each other's rows.
+
+### What passed
+**Full suite: 102 passed, 0 failed** (87 from Step 2 + 15 new). Also
+ran `php vendor/bin/pint --test` across the *entire* project (not just
+the new files) — found and fixed 4 pre-existing style issues left over
+from Step 2 that had never actually been linted (unqualified `use`
+imports in docblocks, missing-space-around-`.` concatenation). All 99
+files clean after. Also ran `npx vp build` — compiles clean, no
+TypeScript changes this session so this was a sanity check, not new
+ground.
+
+### What failed
+Nothing, after the Pint fixes above.
+
+### Database changes
+Added `inbound_messages`, `conversation_states`. See `DECISIONS.md` for
+the `conversation_state` column reconciliation and the
+global-vs-per-provider uniqueness call on `whatsapp_message_id`.
+
+### Security impact
+- New public, unauthenticated surface (`/api/whatsapp/webhook`) — the
+  first one in this codebase. Protected by: signature verification
+  (rejects before any processing, tested), a dedicated rate limiter
+  independent of Meta's own behavior (SECURITY.md §8), and idempotency
+  as a hard DB constraint plus an application-level check (SECURITY.md
+  §5, tested).
+- `provider_id` still never accepted from request input anywhere — the
+  webhook payload determines `phone_number_id`, which is looked up
+  against the DB, not trusted as a foreign key directly.
+- No new authenticated dashboard mutation surfaces this session, so no
+  new authorization tests were needed beyond the webhook-specific ones
+  above.
+
+### Decisions made
+Recorded in `DECISIONS.md`: the `conversation_state` column
+reconciliation, and `whatsapp_message_id` being globally (not
+per-provider) unique.
+
+### Next exact task
+1. **Add real `WHATSAPP_APP_SECRET` and `WHATSAPP_WEBHOOK_VERIFY_TOKEN`
+   to the local `.env`** (not `.env.example`) — the app secret is the
+   one noted during Meta provisioning back in session 4. Pick any
+   string for the verify token; it just has to match what's entered in
+   the Meta App Dashboard's webhook subscription config.
+2. Run `php artisan migrate` locally to apply the two new tables.
+3. In the Meta App Dashboard, configure the webhook subscription URL
+   (this app's `/api/whatsapp/webhook`, needs a public HTTPS URL — a
+   tunnel like ngrok for local testing) and verify token, subscribe to
+   the `messages` field.
+4. Send a real WhatsApp message to the test number and confirm a row
+   lands in `inbound_messages` with `processed_at` set and a `Client` +
+   `ConversationState` got created.
+5. Commit.
+6. Phase 1 Step 4 — Booking Flow via WhatsApp: greeting/menu, show
+   available slots (reusing `ComputeAvailableSlots` from Step 2), confirm
+   selection, create booking, confirmation message back, double-booking
+   prevention under concurrent requests. This is where
+   `ConversationState.state_key` actually gets a real vocabulary and
+   `Booking` creation logic gets built for the first time.
+
+### Notes / blockers
+None — this session had a working PHP interpreter and a full local
+test run throughout, unlike most of the earlier ones.

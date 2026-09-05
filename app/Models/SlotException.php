@@ -17,7 +17,7 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property int $provider_id
- * @property \Illuminate\Support\Carbon $date
+ * @property Carbon $date
  * @property bool $is_closed
  * @property string|null $override_starts_at
  * @property string|null $override_ends_at
