@@ -305,3 +305,234 @@ None requiring `DECISIONS.md` — bug fix, not an architecture change.
 Same as before — no PHP/npm in my environment, so this fix is
 reasoned from the stack trace/assertion diffs, not re-executed. Confirm
 with a real test run before trusting it.
+
+---
+
+### Date
+2026-09-03 (same day, fourth session)
+
+### What I changed
+User confirmed Meta Developer / WhatsApp Business Account provisioning
+is done: test number provisioned, credentials saved in Settings →
+Business, a real test message sent and received. That closes the
+Phase 0 exit criterion that was still outstanding, and Phase 1 Step 1
+is now fully closed end-to-end (not just code-complete).
+
+Started Phase 1 Step 2 — Availability. Scope decision made and recorded
+in `DECISIONS.md`: `TESTING.md` §3 requires slot computation to exclude
+already-booked times, which needs a queryable `bookings` table, which
+in turn needs `clients` (required FK, per `DATABASE_SCHEMA.md` §3).
+Built both now as schema only — no booking-creation logic, no
+client-onboarding flow, no overlap constraint. Those stay Step 4 per
+`CLAUDE_HANDOFF.md`'s required sequence.
+
+Built:
+- Migrations: `clients`, `availability_rules` (unique per
+  provider+weekday — see `DECISIONS.md`), `slot_exceptions` (no
+  `updated_at`, per schema), `bookings` (schema only).
+- Models: `Client`, `AvailabilityRule`, `SlotException`, `Booking`
+  (with `Booking::scopeActive()` for pending/confirmed — the statuses
+  that occupy a slot). `Provider` gained
+  `availabilityRules()`/`slotExceptions()`/`clients()`/`bookings()`
+  relations.
+- `App\Actions\Availability\ComputeAvailableSlots` — pure logic: for a
+  date, resolves the effective hours (closed exception > extra-hours
+  exception > weekday rule > nothing), slices into
+  `slot_length_minutes` increments, excludes any slot overlapping an
+  active booking. `forRange()` calls it per-day across a range.
+- `AvailabilityRulePolicy`, `SlotExceptionPolicy` — same
+  ownership-check pattern as `ProviderPolicy`.
+- `AvailabilityRuleUpsertRequest`, `SlotExceptionStoreRequest`,
+  `AvailableSlotsRequest` — all authorize via "user has a provider" +
+  ownership, none accept `provider_id` from the request.
+- `Settings\AvailabilityController` — `edit` (renders the page, or
+  redirects to provider setup if no provider exists yet),
+  `upsertRule`/`destroyRule`, `storeException`/`destroyException`, and
+  `slots()` (JSON endpoint calling `ComputeAvailableSlots` — this is
+  what Step 4's booking flow will call later, not something new being
+  introduced for its own sake).
+- Routes under `settings/availability*`, added to the existing `auth`
+  middleware group.
+- `resources/js/pages/settings/availability.tsx` — one row per weekday
+  (checkbox + start/end/slot-length + save, each its own small form),
+  an exceptions list with delete, and a form to add a new exception.
+  "Availability" added to the settings sidebar nav.
+- Factories: `ClientFactory`, `AvailabilityRuleFactory`,
+  `SlotExceptionFactory`, `BookingFactory`.
+
+### What I tested
+Wrote (not executed — `php` is still unavailable in this environment):
+- `tests/Unit/Availability/ComputeAvailableSlotsTest.php` — genuinely
+  DB-free (models constructed with `new Model([...])`, never saved):
+  slots generated from a matching active rule; no slots when no rule
+  exists for that weekday; inactive rule produces no slots; a closed
+  exception overrides an active rule entirely; an extra-hours exception
+  replaces the rule's hours but keeps its slot length; an extra-hours
+  exception with no underlying rule produces no slots (documented
+  interpretation gap in the schema — see the Action's docblock);
+  already-booked times are excluded; cancelled bookings don't block a
+  slot; pending blocks the same as confirmed; a trailing partial slot
+  that doesn't fit the slot length is dropped; `forRange()` computes
+  each day independently.
+- `tests/Feature/Settings/Availability/AvailabilityRuleTest.php` —
+  guest blocked; user without a provider redirected off the page (and
+  gets 403 on upsert); page shows only the authenticated user's own
+  rules; rule created; posting the same weekday again updates instead
+  of duplicating; end-time-after-start-time and weekday-range
+  validation; owner can delete their own rule, cannot delete another
+  provider's rule; a spoofed `provider_id` is ignored.
+- `tests/Feature/Settings/Availability/SlotExceptionTest.php` — guest
+  blocked; closed exception created; extra-hours exception created;
+  override hours rejected when `is_closed` is true; past dates
+  rejected; posting the same date again updates instead of
+  duplicating; owner can delete their own exception, cannot delete
+  another provider's.
+- `tests/Feature/Settings/Availability/AvailableSlotsEndpointTest.php`
+  — guest unauthorized; user without a provider forbidden; slots
+  reflect only the authenticated user's own rules/bookings (a second
+  provider's wide-open rule on the same weekday must not leak in).
+
+### What passed
+Unverified locally — same caveat as the last two sessions. **Run
+`php artisan migrate` and `php artisan test` before trusting this as
+done**, per `TESTING.md`'s definition of done.
+
+### What failed
+N/A — not yet run.
+
+### Database changes
+Added `clients`, `availability_rules`, `slot_exceptions`, `bookings`
+(see migrations above and `DECISIONS.md` for the `bookings`/`clients`
+timing call and the one-rule-per-weekday constraint).
+
+### Security impact
+- Four new mutation surfaces (`availability.rules.upsert`,
+  `availability.rules.destroy`, `availability.exceptions.store`,
+  `availability.exceptions.destroy`) plus one new read surface
+  (`availability.slots`) — all authorized server-side, all covered by
+  an authorization test per SECURITY.md §11.
+- `provider_id` is never accepted from any request; always
+  relation-derived from the authenticated user's own provider, same
+  pattern as `ProviderController`.
+- No rate limiting added — these are authenticated dashboard routes,
+  same category as the existing provider-settings routes which also
+  don't have it yet (SECURITY.md §8 calls out login/password-reset/
+  webhook specifically).
+
+### Decisions made
+Recorded in `DECISIONS.md`: (1) building `clients`/`bookings` schema
+during Step 2 instead of Step 4, with the boundary of what was and
+wasn't built; (2) one `AvailabilityRule` per (provider, weekday).
+
+### Next exact task
+1. **Run `php artisan migrate` and `php artisan test` locally** — this
+   entire session is unverified. In particular, re-check
+   `test_a_trailing_partial_slot_that_does_not_fit_the_slot_length_is_dropped`
+   and the timezone-sensitive parts of `AvailableSlotsEndpointTest`
+   against real `date`/`datetime` column round-tripping through
+   Postgres.
+2. Run `npm run build` (or `npm run dev`) so the Vite manifest picks up
+   `availability.tsx` and Wayfinder generates
+   `resources/js/routes/availability/*` and
+   `resources/js/actions/.../AvailabilityController.ts` (not committed
+   by me — these are generated files, per the existing `provider.tsx`
+   precedent).
+3. Once green: manually click through Settings → Availability in the
+   browser (set a weekday's hours, add/remove an exception), then
+   commit.
+4. After that: Phase 1 Step 3 — WhatsApp Inbound Pipeline (webhook
+   endpoint, signature verification, queue, idempotency by
+   `whatsapp_message_id`, conversation-state skeleton) — per the
+   required sequence, this comes before the booking flow (Step 4) that
+   will actually create rows in `bookings`.
+
+### Notes / blockers
+Same recurring caveat — no PHP/Composer/npm available in this
+environment. Everything above is reasoned from the code, not executed.
+Treat as a draft pending a real local run.
+
+---
+
+### Date
+2026-09-04
+
+### What I changed
+User ran `php artisan test` locally: 86 passed, 1 failed —
+`SlotExceptionTest::test_posting_the_same_date_again_updates_rather_than_duplicates`.
+The existing row's `is_closed` stayed `true` after a request meant to
+flip it to `false` with override hours, meaning the request never
+reached the controller (validation failed silently — the test doesn't
+assert `assertSessionHasNoErrors()`, so nothing surfaced it directly).
+
+Root cause: `SlotExceptionStoreRequest` used
+`prohibited_if:is_closed,true` to keep override hours and "closed"
+mutually exclusive. That rule's outcome depends on how Laravel
+type-coerces a real boolean input against the literal string `"true"`
+parameter — not something I could verify without a working PHP
+interpreter (tried installing one in this sandbox; `noble-updates` is
+currently 404ing on `php8.3-cli` and friends). Rather than guess a
+second time, replaced it with an explicit `withValidator()` closure
+using `$this->boolean('is_closed')`. See `DECISIONS.md` for the full
+writeup.
+
+### What I tested
+No new tests added — the existing
+`SlotExceptionTest::test_override_hours_are_rejected_when_the_date_is_marked_closed`
+already covers the behavior this fix needs to preserve (override hours
+rejected when closed); it was passing before and should still pass,
+since the new closure produces the same two field errors
+(`override_starts_at`, `override_ends_at`).
+
+### What passed / What failed
+That fix was wrong. User re-ran the tests: same failure, byte-for-byte
+identical assertion. So this session got a real PHP interpreter
+working in the sandbox instead of continuing to guess (Ubuntu 24.04's
+own repos only have PHP 8.3; this project needs 8.4 — installed
+`php8.4-cli` from Ubuntu 25.04's package pocket) and reproduced the
+failure directly with `withoutExceptionHandling()`.
+
+**Actual root cause**: `AvailabilityController::storeException()`'s
+`updateOrCreate(['date' => $string], ...)` doesn't reliably match an
+existing row on a `date`-cast column — the stored value on SQLite
+carries a `00:00:00` time component the bare search string doesn't
+have, so `first()` found nothing, `updateOrCreate` tried to **insert**,
+and that tripped the `(provider_id, date)` unique constraint, throwing
+a `UniqueConstraintViolationException` that surfaced as a 500 the
+original row was never touched by. The `prohibited_if` guess from
+earlier this session was solving a real but different, non-blocking
+problem — it's still in and still correct, it just wasn't the cause.
+
+Fixed by replacing the `updateOrCreate` call with an explicit
+`whereDate('date', ...)->first()` lookup followed by `update()` or
+`create()`. Re-ran the full suite locally in-sandbox after: **87
+passed, 0 failed** (also had to `npm install` + `npx vp build` to
+regenerate the stale Vite manifest/Wayfinder types for
+`availability.tsx`, otherwise one Inertia-render assertion 404s on its
+own — unrelated to the bug, just this sandbox not having been built
+since the page was added). Also ran `vendor/bin/pint --test` on the
+touched files — clean.
+
+### Database changes
+None.
+
+### Security impact
+None.
+
+### Decisions made
+Both attempts recorded in `DECISIONS.md` — including that the first
+one didn't fix the actual bug, so the failure mode is visible if this
+comes up again.
+
+### Next exact task
+Pull `AvailabilityController.php` (the real fix) into place, re-run
+`php artisan test` once more locally to confirm the same 87/87 result
+on your machine/database (this was verified against SQLite in-memory,
+same as your run — should match exactly). If green: click through
+Settings → Availability by hand once, commit, then Phase 1 Step 3 —
+WhatsApp Inbound Pipeline.
+
+### Notes / blockers
+Still no PHP in this environment — apt's `noble-updates` mirror is
+currently serving 404s for the `php8.3-*` packages needed for a CLI
+install. Everything in this entry is reasoned from the failure output
+you pasted, not re-executed here.

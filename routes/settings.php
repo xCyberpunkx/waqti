@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\AvailabilityController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\ProviderController;
 use App\Http\Controllers\Settings\SecurityController;
@@ -16,6 +17,18 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('settings/provider', [ProviderController::class, 'updateProfile'])->name('provider.update');
     Route::patch('settings/provider/whatsapp', [ProviderController::class, 'updateWhatsappCredentials'])
         ->name('provider.whatsapp.update');
+
+    Route::get('settings/availability', [AvailabilityController::class, 'edit'])->name('availability.edit');
+    Route::post('settings/availability/rules', [AvailabilityController::class, 'upsertRule'])
+        ->name('availability.rules.upsert');
+    Route::delete('settings/availability/rules/{rule}', [AvailabilityController::class, 'destroyRule'])
+        ->name('availability.rules.destroy');
+    Route::post('settings/availability/exceptions', [AvailabilityController::class, 'storeException'])
+        ->name('availability.exceptions.store');
+    Route::delete('settings/availability/exceptions/{exception}', [AvailabilityController::class, 'destroyException'])
+        ->name('availability.exceptions.destroy');
+    Route::get('settings/availability/slots', [AvailabilityController::class, 'slots'])
+        ->name('availability.slots');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

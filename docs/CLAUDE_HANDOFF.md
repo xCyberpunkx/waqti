@@ -45,23 +45,29 @@ session to give wrong guidance; don't repeat that here.
 
 ## Current task
 
-Phase 0 is done (verified against repo 2026-09-03: Laravel 13 + Inertia/
-React/TS scaffold, Docker Compose Postgres+Redis, Pest test files
-present, auth scaffolding via Fortify incl. 2FA/passkeys). No domain
-code exists yet — no `providers`/`clients`/`bookings`/messaging tables,
-no WhatsApp integration code anywhere in `app/`.
+Phase 0 is done, including the WhatsApp sandbox exit criterion — a real
+test message was sent and received against a provisioned Meta test
+number, credentials saved in Settings → Business.
 
-Next milestone is **Phase 1 Step 1 — Provider + Auth**. Dashboard login
-infra already exists (Fortify); still needed: `providers` table/model,
-encrypted WhatsApp credential storage, and linking the existing
-auth/dashboard to a Provider record. See `PROGRESS.md` → "Next exact
-task."
+Phase 1 Step 1 (Provider + Auth) is done and committed, including a
+fillable-attribute bug fix (WhatsApp credentials were silently not
+being written — see `PROGRESS.md`'s third 2026-09-03 entry and
+`DECISIONS.md` if it grows an entry for it).
 
-Open question carried over from the prior session's ambiguous "next
-task" note: whether Meta Developer / WhatsApp Business Account
-provisioning has happened outside the repo (not something the repo can
-confirm either way) — confirm with the user before assuming Step 1 can
-proceed to template submission work.
+Phase 1 Step 2 (Availability) has code written (`clients`,
+`availability_rules`, `slot_exceptions`, `bookings` migrations/models,
+`ComputeAvailableSlots`, `AvailabilityController`, the
+`settings/availability` page, tests) but **unverified — no PHP/npm in
+the environment that wrote it.** See `PROGRESS.md`'s fourth 2026-09-03
+entry for exactly what was built and why `clients`/`bookings` exist
+already (schema only, not the booking flow — that's still Step 4).
+
+Immediate next step, before anything else: run `php artisan migrate`
+and `php artisan test` locally, and `npm run build`/`npm run dev` so
+Wayfinder generates the `availability.tsx` page's route/action files.
+Report back what fails.
+
+Once that's green: Phase 1 Step 3 — WhatsApp Inbound Pipeline.
 
 ## Required implementation sequence (once Phase 0 is done)
 
